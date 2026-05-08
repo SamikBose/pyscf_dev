@@ -638,18 +638,27 @@ class Langevin(_Integrator):
 
         self.friction_coef = friction_coef
         self.T: float = T
-        self.R_i = np.random.normal(0, 2 * friction_coef * data.nist.BOLTZMANN * T)  # 2*gamma*k_B*T
         self.accel = None
         super().__init__(method, **kwargs)
         self.alpha = np.exp(-friction_coef * self.dt)
+
+    def _generate_R_noise(self):
+        """Generate random noise for the Langevin Thermostat.
+        The noise is generated from a normal distribution with mean 0 and 2 * 
+        
+        Returns a (n, 3) array of random noise for each atom in the system.
+        """
+        return np.random.normal(
+            0,
+            2 * self.friction_coef * data.nist.BOLTZMANN * self.T,
+            size=(self.mol.natm, 3),
+        )
 
     def _next(self):
         """Computes the next frame of the simulation and sets all internal
          variables to this new frame. First computes the
 
-        # FIXME
-         new geometry,
-         then the next acceleration, and finally the velocity,
+        # TODO: docs here
 
          all according
          to the Langevin algorithm.
@@ -665,15 +674,15 @@ class Langevin(_Integrator):
             return _toframe(self)
 
         mid_velocity = self._mid_velocity()
-        final_velocity = self._final_velocity(mid_velocity)
-        final_geometry = self._final_geometry(mid_velocity, final_velocity)
+        next_velocity = self._next_velocity(mid_velocity)
+        next_geometry = self._next_geometry(mid_velocity, next_velocity)
 
         # Update geometry, recompute forces
         self.mol.set_geom_(self._next_geometry(), unit='B')
         self.mol.build()
         self.epot, self.accel = self._compute_accel()
 
-        self.veloc = final_velocity
+        self.veloc = next_velocity
         self.ekin = self.compute_kinetic_energy()
 
         return _toframe(self)
@@ -688,24 +697,24 @@ class Langevin(_Integrator):
         a = -1 * grad / self._masses.reshape(-1, 1)
         return e_tot, a
 
-    # TODOL Find better function names for these
+    # TODO: Find better function names for these
     def _mid_velocity(self):
         """
         v_i(t + delta_t/2) = v_i(t - delta_t/2) + f_i(t)*delta_t/m_i
         """
         return self.veloc + 0.5 * self.dt * self.accel
 
-    def _final_velocity(self, mid_velocity):
+    def _next_velocity(self, mid_velocity):
         """
-        v'_i(t + delta_t/2) = v_i(t + delta_t/2)*alpha + sqrt(k*T*(1-alpha^2)/m*R)
+        v'_i(t + delta_t/2) = v_i(t + delta_t/2)*alpha + sqrt(k*T*(1-alpha^2)/m)*R
         """
         return mid_velocity * self.alpha + np.sqrt(
-            data.nist.BOLTZMANN * self.T * (1 - self.alpha**2) / (self._masses.reshape(-1, 1)) * self.R_i
+            data.nist.BOLTZMANN * self.T * (1 - self.alpha**2) / (self._masses.reshape(-1, 1)) * self._generate_R_noise()
         )
 
-    def _final_geometry(self, mid_velocity, final_velocity):
+    def _next_geometry(self, mid_velocity, next_velocity):
         """
         r_i(t + delta_t) = r_i(t + delta_t/2) + v'_i(t + delta_t/2)*delta_t/2
         """
         mid_geometry = self.mol.atom_coords() + mid_velocity * self.dt / 2
-        return mid_geometry + final_velocity * self.dt / 2
+        return mid_geometry + next_velocity * self.dt / 2
