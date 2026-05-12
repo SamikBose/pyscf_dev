@@ -610,17 +610,17 @@ class Langevin(_Integrator):
     '''Langevin algorithm
 
     Args:
-        method : lib.GradScanner or rhf.GradientsBase instance, or
+        method        : lib.GradScanner or rhf.GradientsBase instance, or
         has nuc_grad_method method.
             Method by which to compute the energy gradients and energies
             in order to propagate the equations of motion. Realistically,
             it can be any callable object such that it returns the energy
             and potential energy gradient when given a mol.
 
-        friction_coef  : float
+        friction_coef : float
             Friction coefficient (gamma) for the Langevin thermostat.
 
-        T      : float
+        T             : float
         Temperature of the heat bath for the Langevin thermostat. Given in K.
 
     Attributes:
@@ -648,9 +648,10 @@ class Langevin(_Integrator):
         Returns a (n, 3) array of random noise for each atom in the system.
         '''
 
+        # TODO: Replace with np.random.default_rng(seed); maybe take seed in as input?
         return np.random.normal(
             0,
-            2 * self.friction_coef * data.nist.BOLTZMANN * self.T,
+            2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T,
             size=(self.mol.natm, 3),
         )
 
