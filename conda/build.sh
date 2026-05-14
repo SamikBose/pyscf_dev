@@ -17,4 +17,4 @@ export CMAKE_CONFIGURE_ARGS="-DWITH_F12=OFF -DBLA_VENDOR=OpenBLAS"
 
 # env PYTHON not defined in certain conda-build version
 # $PYTHON -m pip install . -vv
-MAKEFLAGS="-j4" pip install -v -e .
+MAKEFLAGS="-j4" pip install -v .
