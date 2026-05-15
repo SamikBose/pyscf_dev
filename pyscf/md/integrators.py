@@ -606,6 +606,130 @@ class NVTBerendson(_Integrator):
         return self.veloc + 0.5 * self.dt * (self.accel + next_accel)
 
 
+class Langevin(_Integrator):
+    '''Langevin algorithm
+
+    Args:
+        method        : lib.GradScanner or rhf.GradientsBase instance, or
+        has nuc_grad_method method.
+            Method by which to compute the energy gradients and energies
+            in order to propagate the equations of motion. Realistically,
+            it can be any callable object such that it returns the energy
+            and potential energy gradient when given a mol.
+
+        T             : float
+        Temperature of the heat bath for the Langevin thermostat. Given in K.
+
+        friction_coef : float
+            Friction coefficient (gamma) for the Langevin thermostat. Default of 1.0.
+
+    Attributes:
+        accel : ndarray
+            Current acceleration for the simulation. Values are given
+            in atomic units (Bohr/a.u.^2). Dimensions is (natm, 3) such as
+
+             [[x1, y1, z1],
+             [x2, y2, z2],
+             [x3, y3, z3]]
+    '''
+
+    def __init__(self, method, T: float, friction_coef: float = 1.0, **kwargs):
+        self.T: float = T
+        self.friction_coef = friction_coef
+        self.accel = None
+        super().__init__(method, **kwargs)
+        self.alpha = np.exp(-friction_coef * self.dt)
+
+    def _generate_R_noise(self, rng=md.rng):
+        '''Generate random noise for the Langevin Thermostat.
+
+        The noise is generated from a normal distribution with mean 0 and 2 * gamma * k_B * T variance,
+        where gamma is the friction coefficient, k_B is the Boltzmann constant, and T is the temperature of the heat bath.
+
+        Args:
+            rng : np.random.Generator
+                Random number generator to sample from. Must contain a method
+                `normal`. Default is to use the md.rng which is a
+                np.random.Generator
+
+        Returns:
+            (n, 3) array of random noise for each atom in the system.
+        '''
+
+        return rng.random.normal(
+            0,
+            2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T,
+            size=(self.mol.natm, 3),
+        )
+
+    def _next(self):
+        '''Computes the next frame of the simulation and sets all internal
+         variables to this new frame. First computes the new geometry,
+         then the next acceleration, and finally the velocity, all according
+         to the Langevin algorithm.
+
+        Returns:
+            The next frame of the simulation.
+        '''
+
+        # If no acceleration, compute that first, and then go
+        # onto the next step
+        if self.accel is None:
+            next_epot, next_accel = self._compute_accel()
+
+        else:
+            next_velocity = self._next_velocity()
+
+            self.mol.set_geom_(self._next_geometry(next_velocity), unit='B')
+            self.mol.build()
+            next_epot, next_accel = self._compute_accel()
+            self.veloc = next_velocity
+
+        self.epot = next_epot
+        self.ekin = self.compute_kinetic_energy()
+        self.accel = next_accel
+
+        return _toframe(self)
+
+    def _compute_accel(self):
+        '''Given the current geometry, computes the acceleration
+        for each atom.'''
+        e_tot, grad = self.scanner(self.mol)
+        if not self.scanner.converged:
+            raise RuntimeError('Gradients did not converge!')
+
+        a = -1 * grad / self._masses.reshape(-1, 1)
+        return e_tot, a
+
+    # TODO: Find better function names for these?
+
+    def _next_velocity(self):
+        '''Computes the next velocity using the Langevin algorithm. The
+        necessary equations of motion for the next velocity is
+            v_i(t + delta_t) = v_i(t) + f_i(t)*delta_t/m_i + sqrt(k*T*(1-alpha^2)/m)*R
+        '''
+        # TODO: Do we need to scale BOLTZMANN by HARTREE2J here?
+        return self.veloc + self.dt * self.accel + np.sqrt(
+                2* data.nist.BOLTZMANN * self.T * (1 - self.alpha ** 2) / self._masses.reshape(-1, 1) 
+        ) * self._generate_R_noise()
+
+    def _next_geometry(self, next_velocity):
+        '''Computes the next geometry using the Langevin algorithm. The
+        necessary equations of motion for the next geometry is
+            r_i(t + delta_t) = r_i(t) + v_i(t + delta_t)*delta_t
+        '''
+        return self.mol.atom_coords() + self.dt * next_velocity
+
+    # TODO: Should we use the Velocity Verlet style next geometry function?
+    # def _next_geometry(self):
+    #     '''Computes the next geometry using the Velocity Verlet algorithm. The
+    #     necessary equations of motion for the position is
+    #         r(t_i+1) = r(t_i) + /delta t * v(t_i) + 0.5(/delta t)^2 a(t_i)
+    #     '''
+    #     return self.mol.atom_coords() + self.dt * self.veloc + \
+    #         0.5 * (self.dt ** 2) * self.accel
+
+
 class LangevinMiddle(_Integrator):
     '''Langevin Middle algorithm with Velocity Verlet components
 
