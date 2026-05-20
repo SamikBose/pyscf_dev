@@ -2,7 +2,7 @@
   <img src="https://github.com/pyscf/pyscf-doc/blob/master/logo/pyscf-logo.png" height="80px"/>
 </div>
 
-# Python-based Simulations of Chemistry Framework (PySCF) for running enhanced sampling ab-initio molecular dynamics simulation
+# PySCF developmental repo to run enhanced sampling ab-initio molecular dynamics simulation
 -----------------------------------------------
 
 This is a project forked from the parent PySCF repo. The goal is to integrate this with weighted ensemble-based strategies implemented in wepy to run enhanced sampling aiMD simulations. This is currently an actively developing branch. Please contact bosesami@msu.edu or emeottna@msu.edu if you have any question.
