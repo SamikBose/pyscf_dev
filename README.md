@@ -7,9 +7,26 @@ This is a project forked from the parent PySCF repo. The goal is to integrate th
 
 # Installation
 
-* Will be updated soon... Do not follow the pip install commands from the original pyscf package. That will end up installing the stable version, not the current dev version that we are working on.
+1. Make sure to be on a dev node, have the required modules loaded, and have the Conda environment activated.
 
+```bash
+ssh dev-amd24-h200
+ml purge && ml load Miniforge3 OpenBLAS CUDA
+conda activate wepy-dev
+```
 
+2. Clone the `pyscf_dev` repository and enter the directory.
+
+```bash
+git clone https://github.com/SamikBose/pyscf_dev.git
+cd pyscf_dev
+```
+
+3. Build the PySCF package using the Conda build script.
+
+```bash
+./conda/build.sh
+```
 
 # Citing PySCF
 
