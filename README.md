@@ -2,7 +2,7 @@
   <img src="https://github.com/pyscf/pyscf-doc/blob/master/logo/pyscf-logo.png" height="80px"/>
 </div>
 
-Python-based Simulations of Chemistry Framework
+# Python-based Simulations of Chemistry Framework (PySCF) for running enhanced sampling ab-initio molecular dynamics simulation
 -----------------------------------------------
 [![Build Status](https://github.com/pyscf/pyscf/workflows/CI/badge.svg)](https://github.com/pyscf/pyscf/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/pyscf/pyscf/branch/master/graph/badge.svg)](https://codecov.io/gh/pyscf/pyscf)
