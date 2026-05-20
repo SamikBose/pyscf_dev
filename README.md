@@ -4,26 +4,14 @@
 
 # Python-based Simulations of Chemistry Framework (PySCF) for running enhanced sampling ab-initio molecular dynamics simulation
 -----------------------------------------------
-[![Build Status](https://github.com/pyscf/pyscf/workflows/CI/badge.svg)](https://github.com/pyscf/pyscf/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/pyscf/pyscf/branch/master/graph/badge.svg)](https://codecov.io/gh/pyscf/pyscf)
 
-2026-04-20
-
-* [Stable release 2.13.0](https://github.com/pyscf/pyscf/releases/tag/v2.13.0)
-* [Changelog](../master/CHANGELOG)
-* [Documentation](http://www.pyscf.org)
-* [Installation](#installation)
-* [Features](../master/FEATURES)
-* [News](https://pyscf.org/news.html): **3rd PySCF Developers Meeting!**
+This is a project forked from the parent PySCF repo. The goal is to integrate this with weighted ensemble-based strategies implemented in wepy to run enhanced sampling aiMD simulations. This is currently an actively developing branch. Please contact bosesami@msu.edu or emeottna@msu.edu if you have any question.
 
 
 # Installation
 
 * Will be updated soon... Do not follow the pip install commands from the original pyscf package. That will end up installing the stable version, not the current dev version that we are working on.
 
-# Bug reports and feature requests
-
-Please email bosesami@msu.edu or emeottna@msu.edu
 
 
 # Citing PySCF
