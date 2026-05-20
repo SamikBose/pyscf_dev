@@ -19,26 +19,11 @@ Python-based Simulations of Chemistry Framework
 
 # Installation
 
-* Install stable release:
+* Will be updated soon... Do not follow the pip install commands from the original pyscf package. That will end up installing the stable version, not the current dev version that we are working on.
 
-        pip install pyscf
+# Bug reports and feature requests
 
-* New features developed in recent years are available in the pyscf-forge package:
-
-        pip install pyscf-forge
-
-* Certain modules are maintained as extensions of PySCF, such as dispersion,
-  dmrgscf, fciqmc, icmpspt, properties, semiempirical, shciscf ... (more on
-  https://github.com/pyscf) can be installed using pip:
-
-        pip install pyscf[all]
-
-  An individual extension can be installed:
-
-        pip install pyscf[dispersion]
-
-* More details of custom installation can be found in
-  [installation manual](http://pyscf.org/user/install.html#build-from-source)
+Please email bosesami@msu.edu or emeottna@msu.edu
 
 
 # Citing PySCF
@@ -66,7 +51,4 @@ If your calculation employed XCFun, cite
 Ulf Ekström, Lucas Visscher, Radovan Bast, Andreas J. Thorvaldsen, and Kenneth Ruud,
 *J. Chem. Theory Comput.* **6**, 1971 (2010). doi:[10.1021/ct100117s](https://doi.org/10.1021/ct100117s)
 
-# Bug reports and feature requests
-
-Please submit tickets on the [issues](https://github.com/pyscf/pyscf/issues) page.
 
