@@ -5,9 +5,11 @@ Format is Stochastic Dynamics equation first then steps to rearrange to Langevin
 $$
 m_{i} \frac{d^{2}\mathbf{r}_{i}}{dt^{2}}=-m_{i}\gamma_{i} \frac{d\mathbf{r}_{i}}{dt}+\mathbf{F}_{i}(\mathbf{r})+\dot{\mathbf{r}}_{i}
 $$
+
 $$
 \therefore\quad m_i\frac{d\mathbf{v}_i}{dt}=\mathbf{f}_i-\gamma m_i \mathbf{v}_i+\mathbf{R}_i
 $$
+
 Same as Langevin Middle.
 
 ---
@@ -16,11 +18,18 @@ $$
 $$
 
 In Langevin Middle:
+
 $$
 \mathbf{R}_{i}=\mathcal{N}(\mu=0, \sigma=2 \gamma k_{B}T)
 $$
 
-Stochastic Dynamics multiplies by the mass here. $\delta(s)$ is the Dirac delta function, also known as the unit impulse $\left( \delta(x)=\begin{cases} 0, & x\neq 0 \\ \infty & x=0 \end{cases} \right)$. I am assuming $s$ is the step size. Something strange is that $\dot{\mathbf{r}}_{i}$ never seems to be used in the equations below. A different $\mathbf{r}$ is used instead.
+Stochastic Dynamics multiplies by the mass here. $\delta(s)$ is the Dirac delta function, also known as the unit impulse.
+
+$$
+\left( \delta(x)=\begin{cases} 0, & x\neq 0 \\ \infty & x=0 \end{cases} \right)
+$$
+
+I am assuming $s$ is the step size. Something strange is that $\dot{\mathbf{r}}_{i}$ never seems to be used in the equations below. A different $\mathbf{r}$ is used instead.
 
 ---
 $$
