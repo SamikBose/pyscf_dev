@@ -17,6 +17,7 @@
 #          Aniruddha Seal <aniruddhaseal2011@gmail.com>
 
 import os
+from math import sqrt
 import numpy as np
 
 from pyscf import data, md
@@ -658,7 +659,7 @@ class Langevin(_Integrator):
 
         return rng.normal(
             0,
-            2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T,
+            sqrt(2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T), # Square root of variance is std dev which Numpy expects
             size=(self.mol.natm, 3),
         )
 
@@ -781,7 +782,7 @@ class LangevinMiddle(_Integrator):
 
         return rng.normal(
             0,
-            2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T,
+            sqrt(2.0 * self.friction_coef * data.nist.BOLTZMANN * self.T), # Square root of variance is std dev which Numpy expects
             size=(self.mol.natm, 3),
         )
 
