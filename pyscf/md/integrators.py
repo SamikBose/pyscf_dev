@@ -331,13 +331,7 @@ class _Integrator(lib.StreamObject):
 
     def compute_kinetic_energy(self):
         '''Compute the kinetic energy of the current frame.'''
-        # TODO, can make this cleaner by removing an explicit zip and
-        # try to leverage numpy vectors
-        energy = 0
-        for v, m in zip(self.veloc, self._masses):
-            energy += 0.5 * m * np.linalg.norm(v) ** 2
-
-        return energy
+        return 0.5 * np.dot(self._masses, np.einsum('ij,ij->i', self.veloc, self.veloc))
 
     def temperature(self):
         '''Returns the temperature of the system'''
