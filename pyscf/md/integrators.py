@@ -501,6 +501,53 @@ class VelocityVerlet(_Integrator):
         return self.veloc + 0.5 * self.dt * (self.accel + next_accel)
 
 
+class RandomNoiseVelocityVerlet(VelocityVerlet):
+    '''Velocity Verlet algorithm with random noise applied to acceleration
+
+    Args:
+        method : lib.GradScanner or rhf.GradientsBase instance, or
+        has nuc_grad_method method.
+            Method by which to compute the energy gradients and energies
+            in order to propagate the equations of motion. Realistically,
+            it can be any callable object such that it returns the energy
+            and potential energy gradient when given a mol.
+
+        std_dev : float
+            Standard deviation of the normal distribution.
+
+        rng : np.random.Generator
+            Random number generator to sample from. Must contain a method
+            `normal`. Default is to use the md.rng which is a
+            np.random.Generator
+
+    Attributes:
+        accel : ndarray
+            Current acceleration for the simulation. Values are given
+            in atomic units (Bohr/a.u.^2). Dimensions is (natm, 3) such as
+
+             [[x1, y1, z1],
+             [x2, y2, z2],
+             [x3, y3, z3]]
+    '''
+
+    def __init__(self, method, std_dev=1e-4, rng=md.rng, **kwargs):
+        self.std_dev = std_dev
+        self.rng = rng
+        super().__init__(method, **kwargs)
+
+    def _compute_accel(self):
+        '''Given the current geometry, computes the acceleration
+        for each atom.'''
+        e_tot, grad = self.scanner(self.mol)
+        if not self.scanner.converged:
+            raise RuntimeError('Gradients did not converge!')
+
+        a = -1 * grad / self._masses.reshape(-1, 1) + self.rng.normal(
+            0, self.std_dev, size=(self.mol.natm, 3),
+        )
+        return e_tot, a
+
+
 class NVTBerendson(_Integrator):
     '''Berendsen (constant N, V, T) molecular dynamics
 
