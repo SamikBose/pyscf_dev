@@ -630,19 +630,18 @@ class Langevin(_Integrator):
              [x3, y3, z3]]
     '''
 
-    def __init__(self, method, T: float, friction_coef: float = 1.0, **kwargs):
+    def __init__(self, method, T: float, friction_coef: float = 1.0, rng=md.rng, **kwargs):
         self.T: float = T
         self.friction_coef = friction_coef
+        self.rng = rng
         self.accel = None
         super().__init__(method, **kwargs)
-        self._std_devs = np.sqrt(
-            2.0 * friction_coef * data.nist.BOLTZMANN * T / self.dt
-        )
+        self._std_dev = np.sqrt(2.0 * friction_coef * data.nist.BOLTZMANN * T)
 
     def _generate_R_noise(self, rng=md.rng):
         '''Generate random noise for the Langevin Thermostat.
 
-        The noise is generated from a normal distribution with mean 0 and 2*gamma*k_B*T / (m_i*dt) variance,
+        The noise is generated from a normal distribution with mean 0 and 2*gamma*k_B*T variance,
         where gamma is the friction coefficient, k_B is the Boltzmann constant, and T is the temperature of the heat bath.
 
         Args:
@@ -654,11 +653,7 @@ class Langevin(_Integrator):
         Returns:
             (n, 3) array of random noise for each atom in the system.
         '''
-        return rng.normal(
-            0,
-            self._std_devs / self._masses.reshape(-1, 1),
-            size=(self.mol.natm, 3)
-        )
+        return rng.normal(0, self._std_dev, size=(self.mol.natm, 3))
 
     def _next(self):
         '''Computes the next frame of the simulation and sets all internal
@@ -716,15 +711,14 @@ class Langevin(_Integrator):
     def _compute_accel(self, next_veloc):
         '''Given the current geometry, computes the acceleration
         for each atom with noise from the Langevin equation
-            a(t + delta_t) = -grad(t + delta_t)/m_i - gamma*v(t + delta_t) + R_i
+            a(t + delta_t) = (-grad(t + delta_t) + R_i)/m_i - gamma*v(t + delta_t)
         '''
         e_tot, grad = self.scanner(self.mol)
         if not self.scanner.converged:
             raise RuntimeError('Gradients did not converge!')
 
-        a = -1 * grad / self._masses.reshape(-1, 1) - \
-            self.friction_coef * next_veloc + \
-            self._generate_R_noise()
+        a = (-grad + self._generate_R_noise()) / self._masses.reshape(-1, 1) - \
+            self.friction_coef * next_veloc
         return e_tot, a
 
 
@@ -755,21 +749,19 @@ class LangevinMiddle(_Integrator):
              [x3, y3, z3]]
     '''
 
-    def __init__(self, method, T: float, friction_coef: float = 1.0, **kwargs):
+    def __init__(self, method, T: float, friction_coef: float = 1.0, rng=md.rng, **kwargs):
         self.T: float = T
         self.friction_coef = friction_coef
-        self._std_dev = sqrt(2.0 * friction_coef * data.nist.BOLTZMANN * T)
+        self.rng = rng
         self.accel = None
         super().__init__(method, **kwargs)
         self.alpha = np.exp(-friction_coef * self.dt)
         self.mid_veloc = None
 
-    # TODO: Is this supposed to be std normal?
-    def _generate_R_noise(self, rng=md.rng):
+    def _generate_R_noise(self):
         '''Generate random noise for the Langevin Middle Thermostat.
 
-        The noise is generated from a normal distribution with mean 0 and 2*gamma*k_B*T variance,
-        where gamma is the friction coefficient, k_B is the Boltzmann constant, and T is the temperature of the heat bath.
+        The noise is generated from a standard normal distribution.
 
         Args:
             rng : np.random.Generator
@@ -780,7 +772,7 @@ class LangevinMiddle(_Integrator):
         Returns:
             (n, 3) array of random noise for each atom in the system.
         '''
-        return rng.normal(0, self._std_dev, size=(self.mol.natm, 3))
+        return self.rng.normal(0, 1, size=(self.mol.natm, 3))
 
     def _next(self):
         '''Computes the next frame of the simulation and sets all internal
