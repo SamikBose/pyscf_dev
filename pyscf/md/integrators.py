@@ -86,11 +86,12 @@ def _write(dev, mol, vec, atmlst=None):
     '''
     if atmlst is None:
         atmlst = range(mol.natm)
-    dev.stdout.write('         x                y                z\n')
-    ia_width = len(str(max(list(atmlst))))
+    ia_width = len(str(max(atmlst)))
+    dev.stdout.write(' ' * ia_width + '        x                y                z\n')
+    fmt = f'%{ia_width}d %s  %15.10f  %15.10f  %15.10f\n'
     for k, ia in enumerate(atmlst):
         dev.stdout.write(
-            f'%{ia_width}d %s  %15.10f  %15.10f  %15.10f\n' %
+            fmt %
             (ia, mol.atom_symbol(ia), vec[k, 0], vec[k, 1], vec[k, 2]))
 
 
