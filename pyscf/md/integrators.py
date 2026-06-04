@@ -538,11 +538,8 @@ class RandomNoiseVelocityVerlet(VelocityVerlet):
         e_tot, grad = self.scanner(self.mol)
         if not self.scanner.converged:
             raise RuntimeError('Gradients did not converge!')
-
-        a = -1 * grad / self._masses.reshape(-1, 1) + self.rng.normal(
-            0, self.std_dev, size=(self.mol.natm, 3),
-        )
-        return e_tot, a
+        noise = self.rng.normal(0, self.std_dev, size=(self.mol.natm, 3))
+        return e_tot, -grad / self._masses.reshape(-1, 1) + noise
 
 
 class NVTBerendson(_Integrator):
@@ -685,7 +682,7 @@ class Langevin(_Integrator):
         self.rng = rng
         self.accel = None
         super().__init__(method, **kwargs)
-        self._std_dev = np.sqrt(2.0 * friction_coef * data.nist.BOLTZMANN * T)
+        self._std_dev = np.sqrt(2.0 * friction_coef * data.nist.BOLTZMANN / data.nist.HARTREE2J * T)
 
     def _generate_R_noise(self, rng=md.rng):
         '''Generate random noise for the Langevin Thermostat.
@@ -878,7 +875,7 @@ class LangevinMiddle(_Integrator):
             v'_i(t + delta_t/2) = v_i(t + delta_t/2)*alpha + sqrt(k*T*(1-alpha^2)/m)*R
         '''
         return mid_veloc * self.alpha + np.sqrt(
-                data.nist.BOLTZMANN * self.T * (1 - self.alpha ** 2) / self._masses.reshape(-1, 1) 
+            data.nist.BOLTZMANN / data.nist.HARTREE2J * self.T * (1 - self.alpha ** 2) / self._masses.reshape(-1, 1) 
         ) * self._generate_R_noise()
 
     def _next_geometry(self, mid_veloc, next_veloc):
