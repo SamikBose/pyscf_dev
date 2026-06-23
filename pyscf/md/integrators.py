@@ -17,7 +17,6 @@
 #          Aniruddha Seal <aniruddhaseal2011@gmail.com>
 
 import os
-from math import sqrt
 import numpy as np
 
 from pyscf import data, md
@@ -74,11 +73,11 @@ def _toframe(integrator):
                  time=integrator.time)
 
 
-def _write(dev, mol, vec, atmlst=None):
+def _write(log, mol, vec, atmlst=None):
     '''Format output of molecular vector quantity.
 
     Args:
-        dev : lib.logger.Logger object
+        log : lib.logger.Logger object
         mol : gto.mol object
         vec : 2D array with shape (mol.natm, 3)
         atmlst : array of indices to pull atoms from.
@@ -87,10 +86,10 @@ def _write(dev, mol, vec, atmlst=None):
     if atmlst is None:
         atmlst = range(mol.natm)
     ia_width = len(str(max(atmlst)))
-    dev.stdout.write(' ' * ia_width + '        x                y                z\n')
-    fmt = f'%{ia_width}d %s  %15.10f  %15.10f  %15.10f\n'
+    log.note(' ' * ia_width + '        x                y                z')
+    fmt = f'%{ia_width}d %s  %15.10f  %15.10f  %15.10f'
     for k, ia in enumerate(atmlst):
-        dev.stdout.write(
+        log.note(
             fmt %
             (ia, mol.atom_symbol(ia), vec[k, 0], vec[k, 1], vec[k, 2]))
 
@@ -107,11 +106,11 @@ def kernel(integrator, verbose=logger.NOTE):
     for iteration, frame in enumerate(integrator):
         log.note('----------- %s final geometry -----------',
                  integrator.__class__.__name__)
-        _write(integrator, integrator.mol, frame.coord)
+        _write(log, integrator.mol, frame.coord)
         log.note('----------------------------------------------')
         log.note('------------ %s final velocity -----------',
                  integrator.__class__.__name__)
-        _write(integrator, integrator.mol, frame.veloc)
+        _write(log, integrator.mol, frame.veloc)
         log.note('----------------------------------------------')
         log.note('Ekin = %17.13f', frame.ekin)
         log.note('Epot = %17.13f', frame.epot)
