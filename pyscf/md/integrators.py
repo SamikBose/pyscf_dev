@@ -671,7 +671,7 @@ class NVTBussi(NVTBerendson):
             recovers NVE. The taut == 0 limit is the documented CSVR special
             case of *instantaneous* stochastic rescaling (decay factor 0),
             handled here the GROMACS way (see _scale_velocities). taut < 0 is
-            unphysical and raises ValueError.
+            unphysical and raises ValueError. Defaults to 4134.0 (~0.1 ps).
 
         rng : numpy.random.Generator, optional
             Source of randomness. Defaults to `md.rng`. For weighted-ensemble
@@ -703,7 +703,7 @@ class NVTBussi(NVTBerendson):
             quantity GROMACS exposes as the temperature-coupling energy.
     '''
 
-    def __init__(self, method, T, taut, rng=md.rng, **kwargs):
+    def __init__(self, method, T, taut=4134.0, rng=md.rng, **kwargs):
         # Validate before touching anything else so the error is raised at
         # construction without requiring a gradient evaluation.
         if taut < 0:
