@@ -17,7 +17,6 @@
 #          Aniruddha Seal <aniruddhaseal2011@gmail.com>
 
 import os
-from math import sqrt
 import numpy as np
 
 from pyscf import data, md
@@ -336,7 +335,7 @@ class _Integrator(lib.StreamObject):
         return 0.5 * np.dot(self._masses, np.einsum('ij,ij->i', self.veloc, self.veloc))
 
     def temperature(self):
-        '''Returns the temperature of the system'''
+        '''Returns the temperature of the system.'''
         # checked against ORCA for linear and non-linear molecules
         dof = 3 * len(self.mol.atom_coords())
 
@@ -376,8 +375,7 @@ class _Integrator(lib.StreamObject):
 
             return current_frame
 
-        else:
-            raise StopIteration
+        raise StopIteration
 
     def _next(self):
         '''Determines the next step in the molecular dynamics simulation.
@@ -400,8 +398,8 @@ class _Integrator(lib.StreamObject):
                                                        self.temperature())
 
         # We follow OM of writing all the states at the end of the line
-        if getattr(self.scanner.base, 'e_states', None) is not None:
-            if len(self.scanner.base.e_states) > 1:
+        if getattr(self.scanner.base, 'e_states', None) is not None and \
+            len(self.scanner.base.e_states) > 1:
                 for e in self.scanner.base.e_states:
                     output += '  %.12E' % e
 
@@ -553,10 +551,10 @@ class NVTBerendson(_Integrator):
             it can be any callable object such that it returns the energy
             and potential energy gradient when given a mol.
 
-        T      : float
+        T : float
             Target temperature for the NVT Ensemble. Given in K.
 
-        taut   : float
+        taut : float
             Time constant for Berendsen temperature coupling.
             Given in atomic units.
 
@@ -624,13 +622,10 @@ class NVTBerendson(_Integrator):
 
         # Limit the velocity scaling to reasonable values
         # (taken from ase md/nvtberendson.py)
-        if scl_temp > 1.1:
-            scl_temp = 1.1
-        if scl_temp < 0.9:
-            scl_temp = 0.9
+        scl_temp = min(scl_temp, 1.1)
+        scl_temp = max(scl_temp, 0.9)
 
         self.veloc = self.veloc * scl_temp
-        return
 
     def _next_geometry(self):
         '''Computes the next geometry using the Velocity Verlet algorithm. The
@@ -678,19 +673,22 @@ class NVTBussi(NVTBerendson):
             handled here the GROMACS way (see _scale_velocities). taut < 0 is
             unphysical and raises ValueError.
 
-        rng : numpy random Generator, optional
-            Source of randomness. Defaults to None, which resolves to md.rng
-            *inside __init__* (so md.set_seed() is honoured -- a bare
-            `rng=md.rng` default would capture the generator object at class
-            definition time and ignore later reseeding). For weighted-ensemble
-            (wepy) runs, pass a distinctly seeded per-walker Generator, exactly
-            as the Langevin integrators in this module expect -- e.g.
+        rng : numpy.random.Generator, optional
+            Source of randomness. Defaults to `md.rng`. For weighted-ensemble
+            (wepy) runs, pass a distinctly seeded per-walker
+            `numpy.random.Generator`, exactly as the Langevin integrators in
+            this module expect.
 
+                # Reproducible seed
                 rng = np.random.default_rng([walker_id, cycle_idx])
                 myint = NVTBussi(mf, T=300, taut=413.4, dt=20, rng=rng)
 
+                # Random seed
+                rng2 = np.random.Generator(np.random.PCG64(None))
+                myint2 = NVTBussi(mf, T=300, taut=413.4, dt=20, rng=rng2)
+
             Cloned/parallel walker segments correlate only if they replay the
-            same stream; distinct seeds remove that risk.
+            same stream; distinct or fully random seeds remove that risk.
 
     Attributes:
         accel : ndarray (natm, 3)
@@ -705,19 +703,18 @@ class NVTBussi(NVTBerendson):
             quantity GROMACS exposes as the temperature-coupling energy.
     '''
 
-    def __init__(self, method, T, taut, rng=None, **kwargs):
+    def __init__(self, method, T, taut, rng=md.rng, **kwargs):
         # Validate before touching anything else so the error is raised at
         # construction without requiring a gradient evaluation.
         if taut < 0:
             raise ValueError(
                 'taut (thermostat relaxation time) must be >= 0; got %r' % (taut,))
-        # Resolve the RNG default dynamically (see Args note on rng).
-        self.rng = md.rng if rng is None else rng # TODO: Use pyscf convention
+        self.rng = rng
         self.thermostat_work = 0.0
         super().__init__(method, T, taut, **kwargs)
 
     def _scale_velocities(self):
-        r'''Canonical Sampling through Velocity Rescaling.
+        '''Canonical Sampling through Velocity Rescaling.
 
         Reproduces Bussi's reference `resamplekin` routine. Given the current
         kinetic energy K and target kinetic energy
@@ -757,10 +754,7 @@ class NVTBussi(NVTBerendson):
         # documented taut -> 0 instantaneous-resampling limit and guards the
         # division/overflow for very stiff coupling. (taut < 0 is rejected in
         # __init__.)
-        if self.taut > 0.1 * self.dt:
-            c = np.exp(-self.dt / self.taut)
-        else:
-            c = 0.0
+        c = np.exp(-self.dt / self.taut) if self.taut > 0.1 * self.dt else 0.0
 
         r1 = self.rng.standard_normal()
         chi = self.rng.chisquare(dof - 1)        # sum of (dof-1) squared N(0,1)
@@ -790,24 +784,29 @@ class NVTBussi(NVTBerendson):
 # TODO: Units for friction coeff
 
 # Copyright; Samik Bose and Nathan Emeott (Michigan State University)
-# Not implemented in pyscf
+# Not implemented in PySCF
 
 class Langevin(_Integrator):
     '''Langevin algorithm
 
     Args:
-        method        : lib.GradScanner or rhf.GradientsBase instance, or
+        method : lib.GradScanner or rhf.GradientsBase instance, or
         has nuc_grad_method method.
             Method by which to compute the energy gradients and energies
             in order to propagate the equations of motion. Realistically,
             it can be any callable object such that it returns the energy
             and potential energy gradient when given a mol.
 
-        T             : float
-        Temperature of the heat bath for the Langevin thermostat. Given in K.
+        T : float
+            Temperature of the heat bath for the Langevin thermostat. Given in K.
 
         friction_coef : float
             Friction coefficient (gamma) for the Langevin thermostat. Default of 1.0.
+
+        rng : np.random.Generator, optional
+            Random number generator to sample from. Must contain a method
+            `normal`. Default is to use the md.rng which is a
+            np.random.Generator.
 
     Attributes:
         accel : ndarray
@@ -827,22 +826,16 @@ class Langevin(_Integrator):
         super().__init__(method, **kwargs)
         self._std_dev = np.sqrt(2.0 * friction_coef * data.nist.BOLTZMANN / data.nist.HARTREE2J * T)
 
-    def _generate_R_noise(self, rng=md.rng):
+    def _generate_R_noise(self):
         '''Generate random noise for the Langevin Thermostat.
 
         The noise is generated from a normal distribution with mean 0 and 2*gamma*k_B*T variance,
         where gamma is the friction coefficient, k_B is the Boltzmann constant, and T is the temperature of the heat bath.
 
-        Args:
-            rng : np.random.Generator
-                Random number generator to sample from. Must contain a method
-                `normal`. Default is to use the md.rng which is a
-                np.random.Generator
-
         Returns:
             (n, 3) array of random noise for each atom in the system.
         '''
-        return rng.normal(0, self._std_dev, size=(self.mol.natm, 3))
+        return self.rng.normal(0, self._std_dev, size=(self.mol.natm, 3))
 
     def _next(self):
         '''Computes the next frame of the simulation and sets all internal
@@ -915,15 +908,15 @@ class LangevinMiddle(_Integrator):
     '''Langevin Middle algorithm with Velocity Verlet components
 
     Args:
-        method        : lib.GradScanner or rhf.GradientsBase instance, or
+        method : lib.GradScanner or rhf.GradientsBase instance, or
         has nuc_grad_method method.
             Method by which to compute the energy gradients and energies
             in order to propagate the equations of motion. Realistically,
             it can be any callable object such that it returns the energy
             and potential energy gradient when given a mol.
 
-        T             : float
-        Temperature of the heat bath for the Langevin Middle thermostat. Given in K.
+        T : float
+            Temperature of the heat bath for the Langevin Middle thermostat. Given in K.
 
         friction_coef : float
             Friction coefficient (gamma) for the Langevin Middle thermostat. Default of 1.0.
@@ -1018,7 +1011,7 @@ class LangevinMiddle(_Integrator):
             v'_i(t + delta_t/2) = v_i(t + delta_t/2)*alpha + sqrt(k*T*(1-alpha^2)/m)*R
         '''
         return mid_veloc * self.alpha + np.sqrt(
-            data.nist.BOLTZMANN / data.nist.HARTREE2J * self.T * (1 - self.alpha ** 2) / self._masses.reshape(-1, 1) 
+            data.nist.BOLTZMANN / data.nist.HARTREE2J * self.T * (1 - self.alpha ** 2) / self._masses.reshape(-1, 1)
         ) * self._generate_R_noise()
 
     def _next_geometry(self, mid_veloc, next_veloc):
